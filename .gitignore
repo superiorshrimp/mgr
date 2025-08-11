@@ -1,0 +1,34 @@
+__pycache__
+
+/history/*
+/logs
+
+.idea
+
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+
+# Ignore everything inside these directories
+results/latency-blocking/*
+results/latency/*
+results/selection/*
+results/pick/*
+results/accept/*
+
+# Keep the code folders
+!results/latency-blocking/code/
+!results/latency-blocking/code/**
+!results/latency/code/
+!results/latency/code/**
+!results/selection/code/
+!results/selection/code/**
+!results/pick/code/
+!results/pick/code/**
+!results/accept/code/
+!results/accept/code/**

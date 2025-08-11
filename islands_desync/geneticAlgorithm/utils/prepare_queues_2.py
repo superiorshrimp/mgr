@@ -1,0 +1,60 @@
+import json
+import os
+import pika
+
+conf_file = "islands_desync/geneticAlgorithm/algorithm/configurations/algorithm_configuration.json"
+
+head_node_ip = os.getenv("rabbitmq_node_ip", default='localhost')
+credentials = pika.PlainCredentials("rabbitmq", "rabbitmq")
+connection_params = pika.ConnectionParameters(head_node_ip, credentials=credentials)
+connection = pika.BlockingConnection(connection_params)
+channel = connection.channel()
+delay_channel = connection.channel()
+
+
+with open(conf_file) as file:
+    configuration = json.loads(file.read())
+
+rabbitmq_delays = configuration["island_delays"]
+number_of_islands = len(rabbitmq_delays)
+
+def remove_queues():
+    for island in range(number_of_islands):
+        channel.queue_delete(queue=f"island-{island}")
+        for i in range(number_of_islands):
+            channel.queue_delete(f"island-from-{island}-to-{i}")
+
+def create_queues():
+    for island in range(number_of_islands):
+        queue_name = f"island-{island}"
+        channel.queue_declare(queue=queue_name)
+        for i in range(number_of_islands):
+            if i != island:
+                delay = rabbitmq_delays[str(island)][i]
+                if delay == -1:
+                    continue
+                try:
+                    delay_channel.queue_declare(
+                        queue=f"islanrom-{island}-to-{i}",
+                        arguments={
+                            "x-message-ttl": delay,
+                            "x-dead-letter-exchange": "amq.direct",
+                            "x-dead-letter-routing-key": f"island-{i}",
+                        },
+                    )
+                except IndexError as e:
+                    print("Create queues failed")
+                    print(f"Invalid island delays configuration: {e}")
+                    print(
+                        f" Number of islands is {number_of_islands}, island 1 index: {island}, island 2 index: {i}"
+                    )
+                    exit(1)
+
+    connection.close()
+
+
+remove_queues()
+create_queues()
+
+# docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
+
